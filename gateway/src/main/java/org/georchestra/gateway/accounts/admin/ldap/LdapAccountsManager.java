@@ -18,6 +18,7 @@
  */
 package org.georchestra.gateway.accounts.admin.ldap;
 
+import java.lang.foreign.Linker.Option;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -81,6 +82,11 @@ class LdapAccountsManager extends AbstractAccountsManager {
     @Override
     protected Optional<GeorchestraUser> findByUsername(@NonNull String username) {
         return demultiplexingUsersApi.findByUsername(username).map(this::ensureRolesPrefixed);
+    }
+
+    @Override
+    protected Optional<GeorchestraUser> findByEmail(@NonNull String email) {
+        return demultiplexingUsersApi.findByEmail(email).map(this::ensureRolesPrefixed);
     }
 
     private GeorchestraUser ensureRolesPrefixed(GeorchestraUser user) {
@@ -159,9 +165,13 @@ class LdapAccountsManager extends AbstractAccountsManager {
         String description = "";
         final @javax.annotation.Nullable String oAuth2Provider = preAuth.getOAuth2Provider();
         final @javax.annotation.Nullable String oAuth2Uid = preAuth.getOAuth2Uid();
+        final @javax.annotation.Nullable String oAuth2OrgId = preAuth.getOAuth2OrgId();
 
         Account newAccount = AccountFactory.createBrief(username, password, firstName, lastName, email, phone, title,
                 description, oAuth2Provider, oAuth2Uid);
+        // if provider org id exists, we will use it as uniqueOrgId
+        newAccount.setOAuth2OrgId(Optional.ofNullable(oAuth2OrgId).orElse(""));
+        // TODO : datadir config to set pending false or true
         newAccount.setPending(false);
         String defaultOrg = this.georchestraGatewaySecurityConfigProperties.getDefaultOrganization();
         if (StringUtils.isEmpty(org) && !StringUtils.isBlank(defaultOrg)) {
@@ -175,18 +185,52 @@ class LdapAccountsManager extends AbstractAccountsManager {
     /**
      * @throws IllegalStateException if the org can't be created/updated
      */
-    private void ensureOrgExists(@NonNull Account newAccount) {
-        final String orgId = newAccount.getOrg();
-        if (!StringUtils.isEmpty(orgId)) {
-            findOrg(orgId).ifPresentOrElse(org -> addAccountToOrg(newAccount, org),
-                    () -> createOrgAndAddAccount(newAccount, orgId));
+    @Override
+    protected void ensureOrgUniqueIdExists(@NonNull GeorchestraUser mappedUser) {
+        Account newAccount = mapToAccountBrief(mappedUser);
+        ensureOrgUniqueIdExists(newAccount);
+    }
+
+    /**
+     * @throws IllegalStateException if the org can't be created/updated
+     */
+    @Override
+    protected void unlinkUserOrg(@NonNull GeorchestraUser user) {
+        if (user.getOrganization() != null) {
+            Account newAccount = mapToAccountBrief(user);
+            orgsDao.unlinkUser(newAccount);
         }
     }
 
-    private void createOrgAndAddAccount(Account newAccount, final String orgId) {
+    /**
+     * @throws IllegalStateException if the org can't be created/updated
+     */
+    private void ensureOrgExists(@NonNull Account newAccount) {
+        final String orgId = newAccount.getOrg();
+        String orgUniqueId = Optional.ofNullable(newAccount.getOAuth2OrgId()).orElse("");
+
+        if (!StringUtils.isEmpty(orgId)) {
+            findOrg(orgId).ifPresentOrElse(org -> addAccountToOrg(newAccount, org),
+                    () -> createOrgAndAddAccount(newAccount, orgId, orgUniqueId));
+        }
+    }
+
+    /**
+     * @throws IllegalStateException if the org can't be created/updated
+     */
+    private void ensureOrgUniqueIdExists(@NonNull Account newAccount) {
+        final String orgUniqueId = Optional.ofNullable(newAccount.getOAuth2OrgId()).orElse("");
+        final String orgId = Optional.ofNullable(newAccount.getOrg()).orElse(orgUniqueId);
+        if (!orgUniqueId.isEmpty()) {
+            findByOrgUniqueId(orgUniqueId).ifPresentOrElse(org -> addAccountToOrg(newAccount, org),
+                    () -> createOrgAndAddAccount(newAccount, orgId, orgUniqueId));
+        }
+    }
+
+    private void createOrgAndAddAccount(Account newAccount, final String orgId, final String orgUniqueId) {
         try {
             log.info("Org {} does not exist, trying to create it", orgId);
-            Org org = newOrg(orgId);
+            Org org = newOrg(orgId, orgUniqueId);
             org.getMembers().add(newAccount.getUid());
             orgsDao.insert(org);
         } catch (Exception orgError) {
@@ -200,9 +244,18 @@ class LdapAccountsManager extends AbstractAccountsManager {
         orgsDao.update(org);
     }
 
-    private Optional<Org> findOrg(String orgId) {
+    @Override
+    protected Optional<Org> findOrg(String orgId) {
         try {
             return Optional.of(orgsDao.findByCommonName(orgId));
+        } catch (NameNotFoundException e) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<Org> findByOrgUniqueId(String orgUniqueId) {
+        try {
+            return Optional.of(orgsDao.findByOrgUniqueId(orgUniqueId));
         } catch (NameNotFoundException e) {
             return Optional.empty();
         }
@@ -214,6 +267,12 @@ class LdapAccountsManager extends AbstractAccountsManager {
         } catch (NameNotFoundException | DataServiceException rollbackError) {
             log.warn("Error reverting user creation after orgsDao update failure", rollbackError);
         }
+    }
+
+    private Org newOrg(final String orgId, final String orgUniqueId) {
+        Org org = newOrg(orgId);
+        org.setOrgUniqueId(Optional.ofNullable(orgUniqueId).orElse(""));
+        return org;
     }
 
     private Org newOrg(final String orgId) {
