@@ -22,15 +22,12 @@ import java.lang.reflect.Field;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 
 import javax.crypto.spec.SecretKeySpec;
 
 import org.georchestra.gateway.security.ServerHttpSecurityCustomizer;
-import org.georchestra.gateway.security.oauth2.CustomOidc.CustomOidcReactiveOAuth2UserService;
-import org.georchestra.gateway.security.oauth2.CustomOidc.JwtReactiveOAuth2UserService;
 import org.georchestra.gateway.security.GeorchestraGatewaySecurityConfigProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,52 +35,31 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
-import org.springframework.http.converter.FormHttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity.OAuth2LoginSpec;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.oauth2.client.endpoint.ReactiveOAuth2AccessTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.WebClientReactiveAuthorizationCodeTokenResponseClient;
-import org.springframework.security.oauth2.client.http.OAuth2ErrorResponseErrorHandler;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcReactiveOAuth2UserService;
-import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
-import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.oauth2.client.oidc.web.server.logout.OidcClientInitiatedServerLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.InMemoryReactiveClientRegistrationRepository;
-import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.DefaultReactiveOAuth2UserService;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
-import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
-import org.springframework.security.oauth2.core.oidc.user.OidcUser;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoderFactory;
 import org.springframework.security.web.server.authentication.logout.ServerLogoutSuccessHandler;
-import org.springframework.web.client.RestOperations;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
 
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.transport.ProxyProvider;
 
@@ -213,18 +189,18 @@ public class OAuth2Configuration {
     }
 
     @Bean
-    public JwtReactiveOAuth2UserService reactiveOAuth2UserService(
+    public DefaultReactiveOAuth2UserService reactiveOAuth2UserService(
             @Qualifier("oauth2WebClient") WebClient oauth2WebClient) {
 
-        JwtReactiveOAuth2UserService service = new JwtReactiveOAuth2UserService();
+        DefaultReactiveOAuth2UserService service = new DefaultReactiveOAuth2UserService();
         service.setWebClient(oauth2WebClient);
         return service;
     };
 
     @Bean
-    public CustomOidcReactiveOAuth2UserService oidcReactiveOAuth2UserService(
-            JwtReactiveOAuth2UserService oauth2Delegate) {
-        CustomOidcReactiveOAuth2UserService oidUserService = new CustomOidcReactiveOAuth2UserService();
+    public OidcReactiveOAuth2UserService oidcReactiveOAuth2UserService(
+            DefaultReactiveOAuth2UserService oauth2Delegate) {
+        OidcReactiveOAuth2UserService oidUserService = new OidcReactiveOAuth2UserService();
         oidUserService.setOauth2UserService(oauth2Delegate);
         return oidUserService;
     };
@@ -248,7 +224,7 @@ public class OAuth2Configuration {
         final String proxyUser = proxyConfig.getUsername();
         final String proxyPassword = proxyConfig.getPassword();
 
-        HttpClient httpClient = HttpClient.create().responseTimeout(Duration.ofSeconds(120));
+        HttpClient httpClient = HttpClient.create();
         if (proxyConfig.isEnabled()) {
             if (proxyHost == null || proxyPort == null) {
                 throw new IllegalStateException("OAuth2 client HTTP proxy is enabled, but host and port not provided");
@@ -264,44 +240,11 @@ public class OAuth2Configuration {
         }
         ReactorClientHttpConnector conn = new ReactorClientHttpConnector(httpClient);
 
-        // Créer un filtre pour ajouter un Content-Type personnalisé selon l'URI
-
-        ExchangeFilterFunction handleJwtContentType = ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
-            if (clientResponse.headers().contentType().isPresent()
-                    && clientResponse.headers().contentType().get().toString().startsWith("application/jwt")) {
-                return clientResponse.bodyToMono(String.class).flatMap(jwt -> {
-                    try {
-                        // Décoder le JWT en JSON
-                        Map<String, Object> claims = decodeJwt(jwt);
-                        // Convertir le JSON en chaîne
-                        String json = new ObjectMapper().writeValueAsString(claims);
-
-                        // Remplacer le corps par un JSON valide
-                        return Mono.just(clientResponse.mutate()
-                                .headers(httpHeaders -> httpHeaders.setContentType(MediaType.APPLICATION_JSON))
-                                .body(Flux.just(
-                                        new DefaultDataBufferFactory().wrap(json.getBytes(StandardCharsets.UTF_8))))
-                                .build());
-                    } catch (Exception e) {
-                        return Mono.error(new RuntimeException("Failed to decode JWT", e));
-                    }
-                });
-            }
-            return Mono.just(clientResponse);
-        });
+        // Client response application/jwt is not compatible with Spring-security
+        // This filter will allow to convert JWT response to JSON.
+        ExchangeFilterFunction handleJwtContentType = OpenIdHelper.transformJWTClientResponseToJSON();
 
         WebClient webClient = WebClient.builder().clientConnector(conn).filter(handleJwtContentType).build();
         return webClient;
     }
-
-    private Map<String, Object> decodeJwt(String jwt) {
-        try {
-            // Parse and decode the JWT using Nimbus or another library
-            JWT parsedJwt = JWTParser.parse(jwt);
-            return parsedJwt.getJWTClaimsSet().getClaims();
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Unable to decode JWT", e);
-        }
-    }
-
 }
