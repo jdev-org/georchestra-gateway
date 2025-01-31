@@ -152,6 +152,9 @@ public class OpenIdConnectUserMapper extends OAuth2UserMapper {
         try {
             applyStandardClaims(oidcUser, user);
             applyNonStandardClaims(oidcUser.getClaims(), user);
+            if (token.getAuthorizedClientRegistrationId().equals("proconnect")) {
+                applyProConnectClaims(oidcUser.getClaims(), user);
+            }
             user.setUsername((token.getAuthorizedClientRegistrationId() + "_" + user.getUsername())
                     .replaceAll("[^a-zA-Z0-9-_]", "_").toLowerCase());
         } catch (Exception e) {
@@ -201,6 +204,18 @@ public class OpenIdConnectUserMapper extends OAuth2UserMapper {
         apply(target::setEmail, email);
         apply(target::setTelephoneNumber, phoneNumber);
         apply(target::setPostalAddress, formattedAddress);
+    }
+
+    void applyProConnectClaims(Map<String, Object> claims, GeorchestraUser target) {
+        String givenName = claims.get("given_name").toString();
+        String familyName = claims.get("usual_name").toString();
+        String email = claims.get("email").toString();
+        String siret = claims.get("siret").toString();
+
+        apply(target::setFirstName, givenName);
+        apply(target::setLastName, familyName);
+        apply(target::setEmail, email);
+        apply(target::setOAuth2OrgId, siret);
     }
 
     protected void apply(Consumer<String> setter, String... alternativesInOrderOfPreference) {
