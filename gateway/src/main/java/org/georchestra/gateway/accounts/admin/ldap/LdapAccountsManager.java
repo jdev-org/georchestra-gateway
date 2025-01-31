@@ -18,7 +18,6 @@
  */
 package org.georchestra.gateway.accounts.admin.ldap;
 
-import java.lang.foreign.Linker.Option;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
