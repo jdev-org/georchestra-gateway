@@ -109,7 +109,13 @@ class LdapAccountsManager extends AbstractAccountsManager {
         }
 
         try {
-            ensureOrgExists(newAccount);
+            String providerName = newAccount.getOAuth2Provider();
+            if (providerName.isEmpty() || providerName == null) {
+                ensureOrgExists(newAccount);
+            }
+            if (providerName.equals("proconnect")) {
+                ensureOrgUniqueIdExists(newAccount);
+            }
         } catch (IllegalStateException orgError) {
             log.error("Error when trying to create / update the organisation {}, reverting the account creation",
                     newAccount.getOrg(), orgError);
@@ -254,7 +260,11 @@ class LdapAccountsManager extends AbstractAccountsManager {
 
     private Optional<Org> findByOrgUniqueId(String orgUniqueId) {
         try {
-            return Optional.of(orgsDao.findByOrgUniqueId(orgUniqueId));
+            Org existingOrg = orgsDao.findByOrgUniqueId(orgUniqueId);
+            if (existingOrg == null) {
+                return Optional.empty();
+            }
+            return Optional.of(orgsDao.findByCommonName(existingOrg.getId()));
         } catch (NameNotFoundException e) {
             return Optional.empty();
         }
