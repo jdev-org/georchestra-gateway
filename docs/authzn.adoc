@@ -268,6 +268,51 @@ FranceConnect does not support the general `profile` scope, so it is required to
 OpenID fields one by one, as in the example, in a list of supported fields. It will also show to the user
 when logging in which scope has been requested.
 
+=== ProConnect provider
+
+ProConnect enables private and public sector professionals to connect to their usual applications. It's like FranceConnect, but for professionals.
+
+ProConnect overview and technical documentation is available https://github.com/numerique-gouv/proconnect-documentation[here in French]. It requires some specific parameters to be used with the gateway. Here is an example of a working
+configuration using integration platform (URLs may change) :
+
+[source,yaml]
+----
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          proconnect:
+            provider: proconnect
+            client-name: proconnect
+            client-authentication-method: post
+            client-id: <client-id>
+            client-secret: <client-secret>
+            authorization-grant-type: authorization_code
+            redirect-uri: <redirect-url>
+            scope: openid,siret,given_name,usual_name,email,uid,custom
+        provider:
+          proconnect:
+            issuer-uri: https://fca.integ01.dev-agentconnect.fr/api/v2
+----
+
+You can replace `issuer-uri` by full configurations such as FranConnect.
+
+[source,yaml]
+----
+        provider:
+          proconnect:
+            authorization-uri: https://fca.integ01.dev-agentconnect.fr/api/v2/authorize
+            token-uri: https://fca.integ01.dev-agentconnect.fr/api/v2/token
+            user-info-uri: https://fca.integ01.dev-agentconnect.fr/api/v2/userinfo
+            end-session-uri: https://fca.integ01.dev-agentconnect.fr/api/v2/session/end
+            jwk-set-uri: https://fca.integ01.dev-agentconnect.fr/api/v2/jwks
+            user-name-attribute: sub
+----
+
+Note that ProConnect does not support the general `profile` scope, so it is required to specify each necessary
+OpenID fields one by one. You can find the list of claims https://github.com/numerique-gouv/proconnect-documentation/blob/main/doc_fs/scope-claims.md#correspondance-entre-scope-et-claims-sur-proconnect[here].
+
 === Claims configuration
 
 Both standard and non-standard claims can be used to set the `GeorchestraUser`'s
