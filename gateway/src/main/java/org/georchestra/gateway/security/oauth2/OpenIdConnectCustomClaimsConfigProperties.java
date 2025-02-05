@@ -34,6 +34,7 @@ import org.springframework.util.StringUtils;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 
 import lombok.Data;
 import lombok.NonNull;
@@ -58,6 +59,79 @@ public @Data class OpenIdConnectCustomClaimsConfigProperties {
 
     public Optional<JsonPathExtractor> organization() {
         return Optional.ofNullable(organization);
+    }
+
+    public OpenIdConnectCustomClaimsConfigProperties() {
+        // spring constructor
+    }
+
+    public OpenIdConnectCustomClaimsConfigProperties(Map<String, Object> overrideConfig) {
+        applyOverrides(overrideConfig);
+    }
+
+    public void applyOverrides(Map<String, Object> overrideConfig) {
+        if (overrideConfig.containsKey("id")) {
+            this.id = extractJsonPathExtractor(overrideConfig, "id");
+        }
+        if (overrideConfig.containsKey("roles")) {
+            this.roles = extractRolesMapping(overrideConfig, "roles");
+        }
+        if (overrideConfig.containsKey("organization")) {
+            this.organization = extractJsonPathExtractor(overrideConfig, "organization");
+        }
+    }
+
+    private JsonPathExtractor extractJsonPathExtractor(Map<String, Object> config, String key) {
+        Object value = config.get(key);
+        if (value instanceof String) {
+            return new JsonPathExtractor(List.of((String) value));
+        }
+
+        if (value instanceof List) {
+            return new JsonPathExtractor((List<String>) value);
+        }
+
+        if (value instanceof Map) {
+            Map<String, Object> valueMap = (Map<String, Object>) value;
+            Object pathValue = valueMap.get("path");
+            if (valueMap.containsKey("path") && pathValue instanceof List) {
+                return new JsonPathExtractor((List<String>) pathValue);
+            }
+            if (valueMap.containsKey("path") && pathValue instanceof String) {
+                return new JsonPathExtractor(List.of((String) pathValue));
+            }
+        }
+
+        return new JsonPathExtractor();
+    }
+
+    private RolesMapping extractRolesMapping(Map<String, Object> config, String key) {
+        Object value = config.get(key);
+
+        if (value instanceof Map) {
+            Map<String, Object> rolesMap = (Map<String, Object>) value;
+            RolesMapping rolesMapping = new RolesMapping();
+
+            // Extract JsonPathExtractor if present
+            if (rolesMap.containsKey("json")) {
+                rolesMapping.setJson(extractJsonPathExtractor(rolesMap, "json"));
+            }
+
+            // Handle optional boolean properties
+            if (rolesMap.containsKey("uppercase")) {
+                rolesMapping.setUppercase(Boolean.parseBoolean(rolesMap.get("uppercase").toString()));
+            }
+            if (rolesMap.containsKey("normalize")) {
+                rolesMapping.setNormalize(Boolean.parseBoolean(rolesMap.get("normalize").toString()));
+            }
+            if (rolesMap.containsKey("append")) {
+                rolesMapping.setAppend(Boolean.parseBoolean(rolesMap.get("append").toString()));
+            }
+
+            return rolesMapping;
+        }
+
+        return new RolesMapping();
     }
 
     @Accessors(chain = true)
@@ -158,6 +232,13 @@ public @Data class OpenIdConnectCustomClaimsConfigProperties {
          */
         private List<String> path = new ArrayList<>();
 
+        public JsonPathExtractor() {
+        }
+
+        public JsonPathExtractor(List<String> path) {
+            this.path = path;
+        }
+
         /**
          * @param claims
          * @return
@@ -173,6 +254,7 @@ public @Data class OpenIdConnectCustomClaimsConfigProperties {
             if (!StringUtils.hasText(jsonPathExpression)) {
                 return List.of();
             }
+
             // if we call claims.get(key) and the result is a JSON object,
             // the json api used is a shaded version of org.json at package
             // com.nimbusds.jose.shaded.json, we don't want to use that
@@ -180,7 +262,14 @@ public @Data class OpenIdConnectCustomClaimsConfigProperties {
             // JsonPath works fine with it though, as it's designed
             // to work on POJOS, JSONObject is a Map and JSONArray is a List so it's ok
             DocumentContext context = JsonPath.parse(claims);
-            Object matched = context.read(jsonPathExpression);
+            Object matched;
+
+            try {
+                matched = context.read(jsonPathExpression);
+            } catch (PathNotFoundException e) {
+                log.warn("JSONPath expression {} not found in claims", jsonPathExpression, e);
+                return List.of();
+            }
 
             if (null == matched) {
                 log.warn("The JSONPath expession {} evaluates to null", jsonPathExpression);

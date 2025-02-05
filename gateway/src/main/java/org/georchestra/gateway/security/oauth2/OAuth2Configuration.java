@@ -68,7 +68,7 @@ import java.util.stream.Collectors;
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({ OAuth2ProxyConfigProperties.class, OpenIdConnectCustomClaimsConfigProperties.class,
-        GeorchestraGatewaySecurityConfigProperties.class, ExtendedOAuth2ClientProperties.class })
+        GeorchestraGatewaySecurityConfigProperties.class, ExtendedOAuth2ClientProperties.class})
 @Slf4j(topic = "org.georchestra.gateway.security.oauth2")
 public class OAuth2Configuration {
 
@@ -121,8 +121,10 @@ public class OAuth2Configuration {
 
     @Bean
     OpenIdConnectUserMapper openIdConnectGeorchestraUserUserMapper(
-            OpenIdConnectCustomClaimsConfigProperties nonStandardClaimsConfig) {
-        return new OpenIdConnectUserMapper(nonStandardClaimsConfig);
+            OpenIdConnectCustomClaimsConfigProperties nonStandardClaimsConfig,
+            ExtendedOAuth2ClientProperties properties) {
+
+        return new OpenIdConnectUserMapper(nonStandardClaimsConfig, properties);
     }
 
     /**

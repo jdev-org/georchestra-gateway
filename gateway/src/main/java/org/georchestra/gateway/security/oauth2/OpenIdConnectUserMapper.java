@@ -137,6 +137,8 @@ public class OpenIdConnectUserMapper extends OAuth2UserMapper {
 
     private final @NonNull OpenIdConnectCustomClaimsConfigProperties nonStandardClaimsConfig;
 
+    private final @NonNull ExtendedOAuth2ClientProperties extendedOAuth2ClientProperties;
+
     protected @Override Predicate<OAuth2AuthenticationToken> tokenFilter() {
         return token -> token.getPrincipal() instanceof OidcUser;
     }
@@ -149,11 +151,19 @@ public class OpenIdConnectUserMapper extends OAuth2UserMapper {
     protected @Override Optional<GeorchestraUser> map(OAuth2AuthenticationToken token) {
         GeorchestraUser user = super.map(token).orElseGet(GeorchestraUser::new);
         OidcUser oidcUser = (OidcUser) token.getPrincipal();
+
+        String clientId = token.getAuthorizedClientRegistrationId();
+        ExtendedOAuth2ClientProperties.Provider providerConfig = extendedOAuth2ClientProperties.getProvider()
+                .get(clientId);
+
         try {
+            Map<String, Object> userTokenCaims = oidcUser.getClaims();
+            Map<String, Object> providerClaimsConfigObj = providerConfig.getClaims();
             applyStandardClaims(oidcUser, user);
             applyNonStandardClaims(oidcUser.getClaims(), user);
             if (token.getAuthorizedClientRegistrationId().equals("proconnect")) {
                 applyProConnectClaims(oidcUser.getClaims(), user);
+                applyProviderClaims(providerClaimsConfigObj, userTokenCaims, user);
             }
             user.setUsername((token.getAuthorizedClientRegistrationId() + "_" + user.getUsername())
                     .replaceAll("[^a-zA-Z0-9-_]", "_").toLowerCase());
@@ -225,5 +235,17 @@ public class OpenIdConnectUserMapper extends OAuth2UserMapper {
 
     protected @Override Logger logger() {
         return log;
+    }
+
+    public void applyProviderClaims(Map<String, Object> providerClaims, Map<String, Object> claims,
+            GeorchestraUser target) {
+
+        // Vérifier si la configuration du provider existe
+        if (providerClaims == null) {
+            throw new IllegalStateException("Provider configuration not found");
+        }
+
+        OpenIdConnectCustomClaimsConfigProperties newConfigProvider = new OpenIdConnectCustomClaimsConfigProperties(
+                providerClaims);
     }
 }
