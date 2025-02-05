@@ -162,7 +162,7 @@ public class OpenIdConnectUserMapper extends OAuth2UserMapper {
             applyStandardClaims(oidcUser, user);
             applyNonStandardClaims(oidcUser.getClaims(), user);
             if (token.getAuthorizedClientRegistrationId().equals("proconnect")) {
-                applyProConnectClaims(oidcUser.getClaims(), user);
+                // applyProConnectClaims(oidcUser.getClaims(), user);
                 applyProviderClaims(providerClaimsConfigObj, userTokenCaims, user);
             }
             user.setUsername((token.getAuthorizedClientRegistrationId() + "_" + user.getUsername())
@@ -245,7 +245,20 @@ public class OpenIdConnectUserMapper extends OAuth2UserMapper {
             throw new IllegalStateException("Provider configuration not found");
         }
 
-        OpenIdConnectCustomClaimsConfigProperties newConfigProvider = new OpenIdConnectCustomClaimsConfigProperties(
+        OpenIdConnectCustomClaimsConfigProperties providerClaimsConfig = new OpenIdConnectCustomClaimsConfigProperties(
                 providerClaims);
+
+        providerClaimsConfig.id().map(jsonEvaluator -> jsonEvaluator.extract(claims))//
+                .map(List::stream)//
+                .flatMap(Stream::findFirst)//
+                .ifPresent(target::setId);
+
+        providerClaimsConfig.organization().map(jsonEvaluator -> jsonEvaluator.extract(claims))//
+                .map(List::stream)//
+                .flatMap(Stream::findFirst)//
+                .ifPresent(target::setOrganization);
+
+        // todo : fix roles
+        providerClaimsConfig.roles().ifPresent(rolesMapper -> rolesMapper.apply(claims, target));
     }
 }
