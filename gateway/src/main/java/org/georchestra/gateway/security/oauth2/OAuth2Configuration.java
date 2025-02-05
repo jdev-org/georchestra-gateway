@@ -121,8 +121,10 @@ public class OAuth2Configuration {
 
     @Bean
     OpenIdConnectUserMapper openIdConnectGeorchestraUserUserMapper(
-            OpenIdConnectCustomClaimsConfigProperties nonStandardClaimsConfig) {
-        return new OpenIdConnectUserMapper(nonStandardClaimsConfig);
+            OpenIdConnectCustomClaimsConfigProperties nonStandardClaimsConfig,
+            ExtendedOAuth2ClientProperties properties) {
+
+        return new OpenIdConnectUserMapper(nonStandardClaimsConfig, properties);
     }
 
     /**
