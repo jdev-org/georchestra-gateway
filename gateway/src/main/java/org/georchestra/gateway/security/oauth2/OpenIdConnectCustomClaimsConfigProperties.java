@@ -21,6 +21,7 @@ package org.georchestra.gateway.security.oauth2;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -46,11 +47,22 @@ import lombok.extern.slf4j.Slf4j;
 public @Data class OpenIdConnectCustomClaimsConfigProperties {
 
     private JsonPathExtractor id = new JsonPathExtractor();
+    private String userPivot;
     private RolesMapping roles = new RolesMapping();
     private JsonPathExtractor organization = new JsonPathExtractor();
+    private JsonPathExtractor organizationPivot = new JsonPathExtractor();
+    private JsonPathExtractor familyName = new JsonPathExtractor();
+    private JsonPathExtractor givenName = new JsonPathExtractor();
+    private JsonPathExtractor email = new JsonPathExtractor();
+
+    private Map<String, OpenIdConnectCustomClaimsConfigProperties> provider = new HashMap<>();
 
     public Optional<JsonPathExtractor> id() {
         return Optional.ofNullable(id);
+    }
+
+    public Optional<String> userPivot() {
+        return Optional.ofNullable(userPivot);
     }
 
     public Optional<RolesMapping> roles() {
@@ -61,77 +73,24 @@ public @Data class OpenIdConnectCustomClaimsConfigProperties {
         return Optional.ofNullable(organization);
     }
 
-    public OpenIdConnectCustomClaimsConfigProperties() {
-        // spring constructor
+    public Optional<JsonPathExtractor> organizationPivot() {
+        return Optional.ofNullable(organizationPivot);
     }
 
-    public OpenIdConnectCustomClaimsConfigProperties(Map<String, Object> overrideConfig) {
-        applyOverrides(overrideConfig);
+    public Optional<JsonPathExtractor> familyName() {
+        return Optional.ofNullable(familyName);
     }
 
-    public void applyOverrides(Map<String, Object> overrideConfig) {
-        if (overrideConfig.containsKey("id")) {
-            this.id = extractJsonPathExtractor(overrideConfig, "id");
-        }
-        if (overrideConfig.containsKey("roles")) {
-            this.roles = extractRolesMapping(overrideConfig, "roles");
-        }
-        if (overrideConfig.containsKey("organization")) {
-            this.organization = extractJsonPathExtractor(overrideConfig, "organization");
-        }
+    public Optional<JsonPathExtractor> givenName() {
+        return Optional.ofNullable(givenName);
     }
 
-    private JsonPathExtractor extractJsonPathExtractor(Map<String, Object> config, String key) {
-        Object value = config.get(key);
-        if (value instanceof String) {
-            return new JsonPathExtractor(List.of((String) value));
-        }
-
-        if (value instanceof List) {
-            return new JsonPathExtractor((List<String>) value);
-        }
-
-        if (value instanceof Map) {
-            Map<String, Object> valueMap = (Map<String, Object>) value;
-            Object pathValue = valueMap.get("path");
-            if (valueMap.containsKey("path") && pathValue instanceof List) {
-                return new JsonPathExtractor((List<String>) pathValue);
-            }
-            if (valueMap.containsKey("path") && pathValue instanceof String) {
-                return new JsonPathExtractor(List.of((String) pathValue));
-            }
-        }
-
-        return new JsonPathExtractor();
+    public Optional<JsonPathExtractor> email() {
+        return Optional.ofNullable(email);
     }
 
-    private RolesMapping extractRolesMapping(Map<String, Object> config, String key) {
-        Object value = config.get(key);
-
-        if (value instanceof Map) {
-            Map<String, Object> rolesMap = (Map<String, Object>) value;
-            RolesMapping rolesMapping = new RolesMapping();
-
-            // Extract JsonPathExtractor if present
-            if (rolesMap.containsKey("json")) {
-                rolesMapping.setJson(extractJsonPathExtractor(rolesMap, "json"));
-            }
-
-            // Handle optional boolean properties
-            if (rolesMap.containsKey("uppercase")) {
-                rolesMapping.setUppercase(Boolean.parseBoolean(rolesMap.get("uppercase").toString()));
-            }
-            if (rolesMap.containsKey("normalize")) {
-                rolesMapping.setNormalize(Boolean.parseBoolean(rolesMap.get("normalize").toString()));
-            }
-            if (rolesMap.containsKey("append")) {
-                rolesMapping.setAppend(Boolean.parseBoolean(rolesMap.get("append").toString()));
-            }
-
-            return rolesMapping;
-        }
-
-        return new RolesMapping();
+    public Optional<OpenIdConnectCustomClaimsConfigProperties> getProviderConfig(@NonNull String providerName) {
+        return Optional.ofNullable(provider.get(providerName));
     }
 
     @Accessors(chain = true)

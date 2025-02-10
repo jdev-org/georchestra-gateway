@@ -153,17 +153,20 @@ public class OpenIdConnectUserMapper extends OAuth2UserMapper {
         OidcUser oidcUser = (OidcUser) token.getPrincipal();
 
         String clientId = token.getAuthorizedClientRegistrationId();
-        ExtendedOAuth2ClientProperties.Provider providerConfig = extendedOAuth2ClientProperties.getProvider()
-                .get(clientId);
+
+        Optional<OpenIdConnectCustomClaimsConfigProperties> customProviderClaims = nonStandardClaimsConfig
+                .getProviderConfig(clientId);
 
         try {
-            Map<String, Object> userTokenCaims = oidcUser.getClaims();
-            Map<String, Object> providerClaimsConfigObj = providerConfig.getClaims();
+            // First, apply standard claims mapping between OpenID spec fields and token's
+            // claims
             applyStandardClaims(oidcUser, user);
-            applyNonStandardClaims(oidcUser.getClaims(), user);
-            if (token.getAuthorizedClientRegistrationId().equals("proconnect")) {
-                // applyProConnectClaims(oidcUser.getClaims(), user);
-                applyProviderClaims(providerClaimsConfigObj, userTokenCaims, user);
+            // Next, map general georchestra claims settings and token's claims
+            applyGeorchestraNonStandardClaims(oidcUser.getClaims(), user);
+            // Finally, use mapping between current provider claims settings and token's
+            // claims
+            if (customProviderClaims.isPresent()) {
+                applyProviderNonStandardClaims(customProviderClaims.get(), oidcUser.getClaims(), user);
             }
             user.setUsername((token.getAuthorizedClientRegistrationId() + "_" + user.getUsername())
                     .replaceAll("[^a-zA-Z0-9-_]", "_").toLowerCase());
@@ -180,7 +183,7 @@ public class OpenIdConnectUserMapper extends OAuth2UserMapper {
      * @param target
      */
     @VisibleForTesting
-    void applyNonStandardClaims(Map<String, Object> claims, GeorchestraUser target) {
+    void applyGeorchestraNonStandardClaims(Map<String, Object> claims, GeorchestraUser target) {
 
         nonStandardClaimsConfig.id().map(jsonEvaluator -> jsonEvaluator.extract(claims))//
                 .map(List::stream)//
@@ -216,18 +219,6 @@ public class OpenIdConnectUserMapper extends OAuth2UserMapper {
         apply(target::setPostalAddress, formattedAddress);
     }
 
-    void applyProConnectClaims(Map<String, Object> claims, GeorchestraUser target) {
-        String givenName = claims.get("given_name").toString();
-        String familyName = claims.get("usual_name").toString();
-        String email = claims.get("email").toString();
-        String siret = claims.get("siret").toString();
-
-        apply(target::setFirstName, givenName);
-        apply(target::setLastName, familyName);
-        apply(target::setEmail, email);
-        apply(target::setOAuth2OrgId, siret);
-    }
-
     protected void apply(Consumer<String> setter, String... alternativesInOrderOfPreference) {
         Stream.of(alternativesInOrderOfPreference).filter(Objects::nonNull).findFirst()//
                 .ifPresent(setter::accept);
@@ -237,28 +228,39 @@ public class OpenIdConnectUserMapper extends OAuth2UserMapper {
         return log;
     }
 
-    public void applyProviderClaims(Map<String, Object> providerClaims, Map<String, Object> claims,
-            GeorchestraUser target) {
+    public void applyProviderNonStandardClaims(OpenIdConnectCustomClaimsConfigProperties customProviderClaims,
+            Map<String, Object> claims, GeorchestraUser target) {
 
-        // Vérifier si la configuration du provider existe
-        if (providerClaims == null) {
-            throw new IllegalStateException("Provider configuration not found");
-        }
-
-        OpenIdConnectCustomClaimsConfigProperties providerClaimsConfig = new OpenIdConnectCustomClaimsConfigProperties(
-                providerClaims);
-
-        providerClaimsConfig.id().map(jsonEvaluator -> jsonEvaluator.extract(claims))//
+        customProviderClaims.id().map(jsonEvaluator -> jsonEvaluator.extract(claims))//
                 .map(List::stream)//
                 .flatMap(Stream::findFirst)//
                 .ifPresent(target::setId);
 
-        providerClaimsConfig.organization().map(jsonEvaluator -> jsonEvaluator.extract(claims))//
+        customProviderClaims.roles().ifPresent(rolesMapper -> rolesMapper.apply(claims, target));
+
+        customProviderClaims.organization().map(jsonEvaluator -> jsonEvaluator.extract(claims))//
                 .map(List::stream)//
                 .flatMap(Stream::findFirst)//
                 .ifPresent(target::setOrganization);
 
-        // todo : fix roles
-        providerClaimsConfig.roles().ifPresent(rolesMapper -> rolesMapper.apply(claims, target));
+        customProviderClaims.organizationPivot().map(jsonEvaluator -> jsonEvaluator.extract(claims))//
+                .map(List::stream)//
+                .flatMap(Stream::findFirst)//
+                .ifPresent(target::setOAuth2OrgId);
+
+        customProviderClaims.email().map(jsonEvaluator -> jsonEvaluator.extract(claims))//
+                .map(List::stream)//
+                .flatMap(Stream::findFirst)//
+                .ifPresent(target::setEmail);
+
+        customProviderClaims.familyName().map(jsonEvaluator -> jsonEvaluator.extract(claims))//
+                .map(List::stream)//
+                .flatMap(Stream::findFirst)//
+                .ifPresent(target::setLastName);
+
+        customProviderClaims.givenName().map(jsonEvaluator -> jsonEvaluator.extract(claims))//
+                .map(List::stream)//
+                .flatMap(Stream::findFirst)//
+                .ifPresent(target::setFirstName);
     }
 }
