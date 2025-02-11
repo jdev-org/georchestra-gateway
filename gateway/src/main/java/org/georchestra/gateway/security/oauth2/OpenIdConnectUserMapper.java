@@ -243,7 +243,7 @@ public class OpenIdConnectUserMapper extends OAuth2UserMapper {
                 .flatMap(Stream::findFirst)//
                 .ifPresent(target::setOrganization);
 
-        customProviderClaims.organizationPivot().map(jsonEvaluator -> jsonEvaluator.extract(claims))//
+        customProviderClaims.organizationUid().map(jsonEvaluator -> jsonEvaluator.extract(claims))//
                 .map(List::stream)//
                 .flatMap(Stream::findFirst)//
                 .ifPresent(target::setOAuth2OrgId);

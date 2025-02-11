@@ -47,10 +47,9 @@ import lombok.extern.slf4j.Slf4j;
 public @Data class OpenIdConnectCustomClaimsConfigProperties {
 
     private JsonPathExtractor id = new JsonPathExtractor();
-    private String userPivot;
     private RolesMapping roles = new RolesMapping();
     private JsonPathExtractor organization = new JsonPathExtractor();
-    private JsonPathExtractor organizationPivot = new JsonPathExtractor();
+    private JsonPathExtractor organizationUid = new JsonPathExtractor();
     private JsonPathExtractor familyName = new JsonPathExtractor();
     private JsonPathExtractor givenName = new JsonPathExtractor();
     private JsonPathExtractor email = new JsonPathExtractor();
@@ -61,10 +60,6 @@ public @Data class OpenIdConnectCustomClaimsConfigProperties {
         return Optional.ofNullable(id);
     }
 
-    public Optional<String> userPivot() {
-        return Optional.ofNullable(userPivot);
-    }
-
     public Optional<RolesMapping> roles() {
         return Optional.ofNullable(roles);
     }
@@ -73,8 +68,8 @@ public @Data class OpenIdConnectCustomClaimsConfigProperties {
         return Optional.ofNullable(organization);
     }
 
-    public Optional<JsonPathExtractor> organizationPivot() {
-        return Optional.ofNullable(organizationPivot);
+    public Optional<JsonPathExtractor> organizationUid() {
+        return Optional.ofNullable(organizationUid);
     }
 
     public Optional<JsonPathExtractor> familyName() {
