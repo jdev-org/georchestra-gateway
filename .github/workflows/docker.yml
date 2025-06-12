@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - '1.*'
+      - '*.x'
     tags:
       - '*'
 
@@ -51,7 +51,7 @@ jobs:
       run: docker push georchestra/gateway:latest
 
     - name: "Pushing release branch to docker.io"
-      if: contains(github.ref, 'refs/heads/1.') && github.repository == 'georchestra/georchestra-gateway' && github.actor != 'dependabot[bot]' && github.event_name != 'pull_request'
+      if: endsWith(github.ref, '.x') && github.repository == 'georchestra/georchestra-gateway' && github.actor != 'dependabot[bot]' && github.event_name != 'pull_request'
       run: |
         docker tag georchestra/gateway:latest georchestra/gateway:${{ steps.version.outputs.VERSION }}
         docker push georchestra/gateway:${{ steps.version.outputs.VERSION }}
