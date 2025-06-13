@@ -317,7 +317,7 @@
                   <exportAntProperties>true</exportAntProperties>
                   <target>
                     <condition else="99.main.${maven.build.timestamp}~${build.commit.id.abbrev}" property="project.packageVersion" value="${build.closest.tag.name}.${maven.build.timestamp}~${build.commit.id.abbrev}">
-                      <matches pattern="\d{2}\.\d\.x$" string="${build.branch}"></matches>
+                      <matches pattern="\d\.\d\.x$" string="${build.branch}"></matches>
                     </condition>
                   </target>
                 </configuration>
