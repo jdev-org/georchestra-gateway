@@ -4,10 +4,10 @@ fetch("/style-config").then(res => {
     }
     throw new Error("Gateway down")
 }).then(json => {
-    if (json.stylesheet){
-        var styleSheet = document.createElement("style")
-        styleSheet.textContent = json.stylesheet
+    if (json.stylesheet) {
+        var styleSheet = document.createElement("link")
+        styleSheet.setAttribute("rel", "stylesheet")
+        styleSheet.setAttribute("href", json.stylesheet)
         document.head.appendChild(styleSheet)
     }
-
 })
