@@ -7,12 +7,12 @@
     <meta name="googlebot" content="noarchive" />
     <title>Page not found</title>
     <link href="/login/error.css" rel="stylesheet"/>
-    <script src="/login/getConfig.js"></script>
+    <link th:if="${georchestraStylesheet != null and !#strings.isEmpty(georchestraStylesheet)}"
+      th:href="${georchestraStylesheet}" rel="stylesheet"/>
   </head>
   <body lang=EN>
     <div id="wrapper">
       <div class="error-code">404</div>
-      <img src="" alt="" style="display: none" id="error-img">
       <p class="error-desc">Page not found</p>
       <p>Sorry the page you requested doesn't exist.</p>
       <a href="/" class="error-back">Return to the homepage</a>
