@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - '*.x'
+      - '[1-9]+.[0-9]+.x'
     tags:
       - '*'
 
@@ -33,7 +33,7 @@ jobs:
 
     - name: Getting image tag
       id: version
-      run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+      run: echo "VERSION=$(echo $GITHUB_REF | cut -d / -f 3)" >> $GITHUB_OUTPUT
 
     - name: "Build docker image"
       if: github.repository == 'georchestra/georchestra-gateway'
