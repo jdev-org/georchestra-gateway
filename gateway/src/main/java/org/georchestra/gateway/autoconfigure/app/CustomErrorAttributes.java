@@ -22,6 +22,7 @@ import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.web.reactive.error.ErrorWebFluxAutoConfiguration;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
 import org.springframework.boot.web.reactive.error.DefaultErrorAttributes;
@@ -62,6 +63,12 @@ import org.springframework.web.reactive.function.server.ServerRequest;
  * @see ErrorWebExceptionHandler
  */
 public class CustomErrorAttributes extends DefaultErrorAttributes {
+
+    /** Path to the geOrchestra custom stylesheet, if configured. */
+    private @Value("${georchestraStylesheet:}") String georchestraStylesheet;
+
+    /** URL of the logo displayed in the header. */
+    private @Value("${logoUrl:}") String logoUrl;
 
     /**
      * Overrides the default error attributes to remap specific exceptions to
@@ -104,6 +111,8 @@ public class CustomErrorAttributes extends DefaultErrorAttributes {
             attributes.put("status", HttpStatus.FORBIDDEN.value());
             attributes.put("error", HttpStatus.FORBIDDEN.getReasonPhrase());
         }
+        attributes.put("georchestraStylesheet", georchestraStylesheet);
+        attributes.put("logoUrl", logoUrl);
 
         return attributes;
     }
