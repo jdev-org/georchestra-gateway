@@ -37,7 +37,9 @@ jobs:
 
     - name: "Build docker image"
       if: github.repository == 'georchestra/georchestra-gateway'
-      run: make docker
+      run: |
+        make docker
+        make docker-debug
 
     - name: "Log in to docker.io"
       if: github.repository == 'georchestra/georchestra-gateway'
@@ -48,17 +50,16 @@ jobs:
 
     - name: "Push latest to docker.io"
       if: github.ref == 'refs/heads/main' && github.repository == 'georchestra/georchestra-gateway'
-      run: docker push georchestra/gateway:latest
+      run: |
+        docker push georchestra/gateway:latest
+        docker push georchestra/gateway:latest-debug
 
     - name: "Pushing release branch to docker.io"
-      if: endsWith(github.ref, '.x') && github.repository == 'georchestra/georchestra-gateway' && github.actor != 'dependabot[bot]' && github.event_name != 'pull_request'
+      if: (endsWith(github.ref, '.x') || github.ref_type == 'tag') && github.repository == 'georchestra/georchestra-gateway' && github.actor != 'dependabot[bot]' && github.event_name != 'pull_request'
       run: |
         docker tag georchestra/gateway:latest georchestra/gateway:${{ steps.version.outputs.VERSION }}
         docker push georchestra/gateway:${{ steps.version.outputs.VERSION }}
-
-    - name: "Push tagged image to docker.io"
-      if: github.ref_type == 'tag' && github.ref != 'refs/heads/main' && github.repository == 'georchestra/georchestra-gateway'
-      run: docker push georchestra/gateway:${{ steps.version.outputs.VERSION }}
+        docker push georchestra/gateway:${{ steps.version.outputs.VERSION }}-debug
 
     - name: "Update Gateway Docker Hub Description"
       if: github.ref == 'refs/heads/main' && github.repository == 'georchestra/georchestra-gateway' && github.actor != 'dependabot[bot]' && github.event_name != 'pull_request'

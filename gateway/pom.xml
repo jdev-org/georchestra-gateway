@@ -253,6 +253,33 @@
       </build>
     </profile>
     <profile>
+        <id>docker-debug</id>
+        <build>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>build-image</id>
+                            <goals>
+                                <goal>build-image</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <image>
+                            <builder>paketobuildpacks/builder-jammy-base</builder>
+                            <name>georchestra/${project.artifactId}:${project.version}-debug</name>
+                            <pullPolicy>IF_NOT_PRESENT</pullPolicy>
+                        </image>
+                        <jvmOptions>-XX:MaxRAMPercentage=80 -XX:+UseParallelGC</jvmOptions>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </build>
+    </profile>
+    <profile>
       <id>debianPackage</id>
       <build>
         <finalName>${project.artifactId}</finalName>

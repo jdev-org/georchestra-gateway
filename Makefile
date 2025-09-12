@@ -13,5 +13,10 @@ docker:
 	docker tag georchestra/gateway:$${TAG} georchestra/gateway:latest && \
 	docker images|grep "georchestra/gateway"|grep latest
 
+docker-debug:
+	@TAG=`./mvnw -f gateway/ help:evaluate -q -DforceStdout -Dexpression=imageTag` && \
+	./mvnw package -f gateway/ -Pdocker-debug -ntp -DskipTests && \
+	docker tag georchestra/gateway:$${TAG} georchestra/gateway:latest-debug
+
 deb: install
 	./mvnw package deb:package -f gateway/ -PdebianPackage
