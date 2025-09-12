@@ -58,6 +58,7 @@ jobs:
       if: (endsWith(github.ref, '.x') || github.ref_type == 'tag') && github.repository == 'georchestra/georchestra-gateway' && github.actor != 'dependabot[bot]' && github.event_name != 'pull_request'
       run: |
         docker tag georchestra/gateway:latest georchestra/gateway:${{ steps.version.outputs.VERSION }}
+        docker tag georchestra/gateway:latest-debug georchestra/gateway:${{ steps.version.outputs.VERSION }}-debug
         docker push georchestra/gateway:${{ steps.version.outputs.VERSION }}
         docker push georchestra/gateway:${{ steps.version.outputs.VERSION }}-debug
 
