@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.annotation.PostConstruct;
+import org.springframework.web.server.WebSession;
 
 /**
  * Controller handling login and logout views for the geOrchestra gateway.
@@ -137,9 +138,12 @@ public class LoginLogoutController {
      * @return the login view name or a redirect to an authentication provider
      */
     @GetMapping(path = "/login")
-    public String loginPage(@RequestParam Map<String, String> allRequestParams, Model model) {
+    public String loginPage(@RequestParam Map<String, String> allRequestParams, Model model, WebSession session) {
         Map<String, Pair<String, String>> oauth2LoginLinks = new HashMap<>();
 
+        if (allRequestParams.containsKey("redirect")) {
+            session.getAttributes().put("SPRING_SECURITY_SAVED_REQUEST", allRequestParams.get("redirect"));
+        }
         // Populate OAuth2 login links
         if (oauth2ClientConfig != null) {
             oauth2ClientConfig.getRegistration().forEach((key, value) -> {
