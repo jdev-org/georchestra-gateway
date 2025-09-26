@@ -19,9 +19,7 @@
 package org.georchestra.gateway.app;
 
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.georchestra.gateway.security.GeorchestraGatewaySecurityConfigProperties;
@@ -72,6 +70,9 @@ public class LoginLogoutController {
 
     /** Whether header-based authentication is enabled. */
     private @Value("${georchestra.gateway.headerEnabled:true}") boolean headerEnabled;
+
+    /** Whether redirect after login is enabled or not is enabled. */
+    private @Value("${georchestra.gateway.loginRedirectAllowList:}") String[] loginRedirectAllowList;
 
     /** Path to the geOrchestra custom stylesheet, if configured. */
     private @Value("${georchestraStylesheet:}") String georchestraStylesheet;
@@ -141,7 +142,7 @@ public class LoginLogoutController {
     public String loginPage(@RequestParam Map<String, String> allRequestParams, Model model, WebSession session) {
         Map<String, Pair<String, String>> oauth2LoginLinks = new HashMap<>();
 
-        if (allRequestParams.containsKey("redirect")) {
+        if (allRequestParams.containsKey("redirect") && isSafeRedirect(allRequestParams.get("redirect"))) {
             session.getAttributes().put("SPRING_SECURITY_SAVED_REQUEST", allRequestParams.get("redirect"));
         }
         // Populate OAuth2 login links
@@ -191,5 +192,21 @@ public class LoginLogoutController {
         model.addAttribute("headerConfigFile", headerConfigFile);
         model.addAttribute("headerEnabled", headerEnabled);
         model.addAttribute("headerScript", headerScript);
+    }
+
+    /**
+     * Checks if a given URL is in the safe redirect allow list.
+     *
+     * Example gateway.yaml:
+     * loginRedirectAllowList: >
+     *   http://localhost:8080/geoserver/,
+     *   http://localhost:8080/console/
+     *
+     * @param url the URL to check
+     * @return {@code true} if the URL is allowed for redirection, {@code false}
+     *         otherwise
+     */
+    private boolean isSafeRedirect(String url) {
+        return Arrays.stream(loginRedirectAllowList).anyMatch(url::startsWith);
     }
 }
