@@ -499,3 +499,19 @@ management:
 ```
 
 For comprehensive information on monitoring and management features, including all available endpoints and integration with monitoring systems, see the [Monitoring and Management](monitoring.md) guide.
+
+## Login Redirection Configuration
+
+The Gateway allows redirection with a query parameter on login page to URLs specified in the `gateway.yaml` file.
+
+It's a startWith match, so you can specify a whole path or just the beginning of it.
+
+### Login Redirection Structure
+
+```yaml
+georchestra:
+  gateway:
+    loginRedirectAllowList: >
+      http://localhost:8080/geoserver/,
+      http://localhost:8080/console/
+```
