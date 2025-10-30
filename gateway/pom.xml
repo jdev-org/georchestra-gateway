@@ -253,11 +253,11 @@
       </build>
     </profile>
     <profile>
-        <id>docker-debug</id>
-        <properties>
-            <spring-boot.build-image.builder>paketobuildpacks/builder-jammy-base</spring-boot.build-image.builder>
-            <spring-boot.build-image.imageName>georchestra/gateway:${imageTag}-debug</spring-boot.build-image.imageName>
-        </properties>
+      <id>docker-debug</id>
+      <properties>
+        <spring-boot.build-image.builder>paketobuildpacks/builder-jammy-base</spring-boot.build-image.builder>
+        <spring-boot.build-image.imageName>georchestra/gateway:${imageTag}-debug</spring-boot.build-image.imageName>
+      </properties>
     </profile>
     <profile>
       <id>debianPackage</id>
