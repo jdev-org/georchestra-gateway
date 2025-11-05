@@ -95,6 +95,18 @@ public class LoginLogoutController {
     /** JavaScript file used to load the geOrchestra header. */
     private @Value("${headerScript:https://cdn.jsdelivr.net/gh/georchestra/header@dist/header.js}") String headerScript;
 
+    /** Resolver handling provider logo path lookup with fallback logic. */
+    private final ProviderLogoResolver providerLogoResolver;
+
+    /**
+     * Builds the controller with collaborators required for login rendering.
+     *
+     * @param providerLogoResolver resolver handling logo path lookup
+     */
+    public LoginLogoutController(ProviderLogoResolver providerLogoResolver) {
+        this.providerLogoResolver = providerLogoResolver;
+    }
+
     /**
      * Initializes authentication settings based on configuration properties.
      * <p>
@@ -149,9 +161,7 @@ public class LoginLogoutController {
         if (oauth2ClientConfig != null) {
             oauth2ClientConfig.getRegistration().forEach((key, value) -> {
                 String clientName = Optional.ofNullable(value.getClientName()).orElse(key);
-                String providerPath = Path.of("login/img/", key + ".png").toString();
-                String logo = new ClassPathResource("static/" + providerPath).exists() ? providerPath
-                        : "login/img/default.png";
+                String logo = providerLogoResolver.resolveProviderLogoPath(key);
                 oauth2LoginLinks.put("/oauth2/authorization/" + key, Pair.of(clientName, logo));
             });
         }
@@ -197,10 +207,8 @@ public class LoginLogoutController {
     /**
      * Checks if a given URL is in the safe redirect allow list.
      *
-     * Example gateway.yaml:
-     * loginRedirectAllowList: >
-     *   http://localhost:8080/geoserver/,
-     *   http://localhost:8080/console/
+     * Example gateway.yaml: loginRedirectAllowList: >
+     * http://localhost:8080/geoserver/, http://localhost:8080/console/
      *
      * @param url the URL to check
      * @return {@code true} if the URL is allowed for redirection, {@code false}
