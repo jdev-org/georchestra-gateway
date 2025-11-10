@@ -66,6 +66,8 @@ public class OpenIdConnectCustomConfig {
 
     private Boolean searchEmail;
 
+    private Boolean moderatedSignup;
+
     private Map<String, OpenIdConnectCustomConfig> provider = new HashMap<>();
 
     /**
@@ -92,5 +94,19 @@ public class OpenIdConnectCustomConfig {
                 .map(OpenIdConnectCustomConfig::getSearchEmail)
                 // orf fallback general config
                 .orElse(searchEmail != null ? searchEmail : false);
+    }
+
+    /**
+     * Determines if a new user will be set as pending (false by default).
+     * 
+     * @param providerName provider id in use
+     * @return {@Boolean} true if user will be set as pending on creation
+     */
+    public boolean moderatedSignup(@NonNull String providerName) {
+        return getProviderConfig(providerName)
+                // provider config
+                .map(OpenIdConnectCustomConfig::getModeratedSignup)
+                // orf fallback general config
+                .orElse(moderatedSignup != null ? moderatedSignup : false);
     }
 }
