@@ -302,7 +302,11 @@ class LdapAccountsManager extends AbstractAccountsManager {
                 description, oAuth2Provider, oAuth2Uid);
         // if provider org id exists, we will use it as uniqueOrgId
         newAccount.setOAuth2OrgId(Optional.ofNullable(oAuth2OrgId).orElse(""));
-        newAccount.setPending(false);
+        // use default.properties param or params from provider gateway's config
+        boolean defaultModeratedSignup = this.georchestraGatewaySecurityConfigProperties.isModeratedSignup();
+        boolean moderatedSignup = Optional.ofNullable(oAuth2Provider).filter(StringUtils::isNotBlank)
+                .map(providersConfig::moderatedSignup).orElse(defaultModeratedSignup);
+        newAccount.setPending(moderatedSignup);
         String defaultOrg = this.georchestraGatewaySecurityConfigProperties.getDefaultOrganization();
         if (StringUtils.isEmpty(org) && !StringUtils.isBlank(defaultOrg)) {
             newAccount.setOrg(defaultOrg);
