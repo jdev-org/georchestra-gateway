@@ -230,7 +230,7 @@ public abstract class AbstractAccountsManager implements AccountManager {
     protected abstract Optional<GeorchestraUser> findByUsername(String username);
 
     /**
-     * Finds a user by their email.
+     * Finds not pending user by their email.
      * <p>
      * Implementations must provide a concrete method for retrieving users from
      * storage.
@@ -241,6 +241,20 @@ public abstract class AbstractAccountsManager implements AccountManager {
      *         {@link Optional} if not found
      */
     protected abstract Optional<GeorchestraUser> findByEmail(String email);
+
+    /**
+     * Finds pending or valid user by their email.
+     * <p>
+     * Implementations must provide a concrete method for retrieving users from
+     * storage.
+     * </p>
+     *
+     * @param email         the email to search for
+     * @param filterPending boolean to filter pending or not
+     * @return an {@link Optional} containing the found user, or an empty
+     *         {@link Optional} if not found
+     */
+    protected abstract Optional<GeorchestraUser> findByEmail(String email, boolean filterPending);
 
     /**
      * Affect a user to an organization according to user's credentials.
