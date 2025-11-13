@@ -162,6 +162,11 @@ class LdapAccountsManager extends AbstractAccountsManager {
         return demultiplexingUsersApi.findByEmail(email).map(this::ensureRolesPrefixed);
     }
 
+    @Override
+    protected Optional<GeorchestraUser> findByEmail(@NonNull String email, boolean filterPending) {
+        return demultiplexingUsersApi.findByEmail(email, filterPending).map(this::ensureRolesPrefixed);
+    }
+
     /**
      * Ensures all roles assigned to a user are prefixed with {@code "ROLE_"}.
      * <p>

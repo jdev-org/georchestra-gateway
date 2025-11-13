@@ -117,7 +117,11 @@ public abstract class AbstractAccountsManager implements AccountManager {
         if (oAuth2Provider != null && oAuth2UId != null) {
             // search user by email or by OAuth2Uid
             Boolean useEmail = providersConfig.useEmail(oAuth2Provider);
-            return useEmail ? findByEmail(mappedUser.getEmail()) : findByOAuth2Uid(oAuth2Provider, oAuth2UId);
+            if (useEmail) {
+                Optional<GeorchestraUser> ldapUser = findByEmail(mappedUser.getEmail(), false);
+                return ldapUser;
+            }
+            findByOAuth2Uid(oAuth2Provider, oAuth2UId);
         }
         return findByUsername(mappedUser.getUsername());
     }
@@ -189,7 +193,8 @@ public abstract class AbstractAccountsManager implements AccountManager {
             GeorchestraUser existing = findInternal(mapped).orElse(null);
             if (existing == null) {
                 createInternal(mapped);
-                existing = findInternal(mapped).orElseThrow(() -> new IllegalStateException(
+                Optional<GeorchestraUser> user = findInternal(mapped);
+                existing = user.orElseThrow(() -> new IllegalStateException(
                         "User " + mapped.getUsername() + " not found immediately after creation"));
                 eventPublisher.publishEvent(new AccountCreated(existing));
             }
