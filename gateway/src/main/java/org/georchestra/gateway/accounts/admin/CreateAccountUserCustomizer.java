@@ -84,7 +84,6 @@ public class CreateAccountUserCustomizer implements GeorchestraUserCustomizerExt
             } else {
                 user = accounts.getOrCreate(mappedUser);
                 if (user.isPending()) {
-                    // TODO : use onAuthenticationFailure
                     throw new PendingUserException("User is pending approval.");
                 }
                 accounts.createUserOrgUniqueIdIfMissing(mappedUser);

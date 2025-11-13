@@ -1,7 +1,9 @@
 package org.georchestra.gateway.security.exceptions;
 
+import org.springframework.security.core.AuthenticationException;
+
 @SuppressWarnings("serial")
-public class PendingUserException extends RuntimeException {
+public class PendingUserException extends AuthenticationException {
     /**
      * Constructs a new {@code PendingUserException} with the specified detail
      * message.
@@ -16,5 +18,6 @@ public class PendingUserException extends RuntimeException {
      * Constructs a new {@code PendingUserException} without a detail message.
      */
     public PendingUserException() {
+        this("User is pending validation");
     }
 }

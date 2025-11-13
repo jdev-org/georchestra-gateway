@@ -121,7 +121,7 @@ public abstract class AbstractAccountsManager implements AccountManager {
                 Optional<GeorchestraUser> ldapUser = findByEmail(mappedUser.getEmail(), false);
                 return ldapUser;
             }
-            findByOAuth2Uid(oAuth2Provider, oAuth2UId);
+            return findByOAuth2Uid(oAuth2Provider, oAuth2UId);
         }
         return findByUsername(mappedUser.getUsername());
     }
