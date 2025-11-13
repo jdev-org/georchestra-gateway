@@ -54,6 +54,7 @@ public class ExtendedRedirectServerAuthenticationFailureHandler extends Redirect
     private static final String INVALID_CREDENTIALS = "invalid_credentials";
     private static final String EXPIRED_PASSWORD = "expired_password";
     private static final String EXPIRED_MESSAGE = "Your password has expired";
+    private static final String PENDING_USER = "User is pending validation";
     private final ServerRedirectStrategy redirectStrategy = new DefaultServerRedirectStrategy();
 
     /**
