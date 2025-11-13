@@ -20,6 +20,7 @@ package org.georchestra.gateway.security;
 
 import java.net.URI;
 
+import org.georchestra.gateway.security.exceptions.DuplicatedUsernameFoundException;
 import org.georchestra.gateway.security.exceptions.PendingUserException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.server.DefaultServerRedirectStrategy;
@@ -55,6 +56,7 @@ public class ExtendedRedirectServerAuthenticationFailureHandler extends Redirect
     private static final String INVALID_CREDENTIALS = "invalid_credentials";
     private static final String EXPIRED_PASSWORD = "expired_password";
     private static final String PENDING_USER_ERROR = "pending_user";
+    private static final String DUPLICATE_ACCOUNT_ERROR = "dupplicate_error";
     private static final String EXPIRED_MESSAGE = "Your password has expired";
     private final ServerRedirectStrategy redirectStrategy = new DefaultServerRedirectStrategy();
 
@@ -88,6 +90,8 @@ public class ExtendedRedirectServerAuthenticationFailureHandler extends Redirect
             this.location = URI.create("login?error=" + EXPIRED_PASSWORD);
         } else if (exception instanceof PendingUserException) {
             this.location = URI.create("login?error=" + PENDING_USER_ERROR);
+        } else if (exception instanceof DuplicatedUsernameFoundException) {
+            this.location = URI.create("login?error=" + DUPLICATE_ACCOUNT_ERROR);
         }
         return this.redirectStrategy.sendRedirect(webFilterExchange.getExchange(), this.location);
     }

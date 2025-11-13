@@ -23,6 +23,7 @@ import java.net.URI;
 import org.georchestra.gateway.model.GeorchestraOrganizations;
 import org.georchestra.gateway.model.GeorchestraUsers;
 import org.georchestra.gateway.security.exceptions.DuplicatedEmailFoundException;
+import org.georchestra.gateway.security.exceptions.DuplicatedUsernameFoundException;
 import org.georchestra.gateway.security.exceptions.PendingUserException;
 import org.georchestra.gateway.security.ldap.extended.ExtendedGeorchestraUser;
 import org.georchestra.security.model.GeorchestraUser;
@@ -125,7 +126,9 @@ public class ResolveGeorchestraUserGlobalFilter implements GlobalFilter, Ordered
                 .map(user -> storeUserAndOrganization(exchange, user.orElse(null))).defaultIfEmpty(exchange)
                 .flatMap(chain::filter)
                 .onErrorResume(DuplicatedEmailFoundException.class, error -> handleDuplicateEmailError(exchange))
-                .onErrorResume(PendingUserException.class, error -> handlePendingUserError(exchange, error));
+                .onErrorResume(PendingUserException.class, error -> handlePendingUserError(exchange, error))
+                .onErrorResume(DuplicatedUsernameFoundException.class,
+                        error -> handleDuplicateUsernameError(exchange, error));
     }
 
     /**
@@ -161,6 +164,14 @@ public class ResolveGeorchestraUserGlobalFilter implements GlobalFilter, Ordered
     }
 
     private Mono<Void> handlePendingUserError(ServerWebExchange exchange, PendingUserException exception) {
+        WebFilterChain noopChain = webExchange -> Mono.empty();
+        WebFilterExchange webFilterExchange = new WebFilterExchange(exchange, noopChain);
+        return authenticationFailureHandler.onAuthenticationFailure(webFilterExchange, exception)
+                .then(exchange.getSession().flatMap(WebSession::invalidate));
+    }
+
+    private Mono<Void> handleDuplicateUsernameError(ServerWebExchange exchange,
+            DuplicatedUsernameFoundException exception) {
         WebFilterChain noopChain = webExchange -> Mono.empty();
         WebFilterExchange webFilterExchange = new WebFilterExchange(exchange, noopChain);
         return authenticationFailureHandler.onAuthenticationFailure(webFilterExchange, exception)
