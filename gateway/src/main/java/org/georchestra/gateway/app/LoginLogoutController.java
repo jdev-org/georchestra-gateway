@@ -18,7 +18,6 @@
  */
 package org.georchestra.gateway.app;
 
-import java.nio.file.Path;
 import java.util.*;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -27,7 +26,8 @@ import org.georchestra.gateway.security.GeorchestraGatewaySecurityConfigProperti
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientProperties;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.boot.autoconfigure.web.WebProperties;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -58,6 +58,10 @@ import org.springframework.web.server.WebSession;
 // system.
 @Controller
 public class LoginLogoutController {
+
+    private @Autowired(required = false) WebProperties webProperties;
+
+    private @Autowired(required = false) Environment environment;
 
     /** Configuration properties for gateway security, including LDAP settings. */
     private @Autowired(required = false) GeorchestraGatewaySecurityConfigProperties georchestraGatewaySecurityConfigProperties;
@@ -149,9 +153,21 @@ public class LoginLogoutController {
         if (oauth2ClientConfig != null) {
             oauth2ClientConfig.getRegistration().forEach((key, value) -> {
                 String clientName = Optional.ofNullable(value.getClientName()).orElse(key);
-                String providerPath = Path.of("login/img/", key + ".png").toString();
-                String logo = new ClassPathResource("static/" + providerPath).exists() ? providerPath
-                        : "login/img/default.png";
+                String[] locations = webProperties.getResources().getStaticLocations();
+                String staticPath = StaticResourcesUtils.computeStaticResourceWebPrefix(environment);
+                // default logo
+                String logo = "login/img/default.png";
+                // provider logo
+                String providerPath = "login/img/" + key + ".png";
+                // loop over static locations
+                for (String location : locations) {
+                    String base = location.endsWith("/") ? location : location + "/";
+                    if (StaticResourcesUtils.resourceExists(base + providerPath)) {
+                        // use logo if exists or use default
+                        logo = staticPath + providerPath;
+                        break;
+                    }
+                }
                 oauth2LoginLinks.put("/oauth2/authorization/" + key, Pair.of(clientName, logo));
             });
         }
