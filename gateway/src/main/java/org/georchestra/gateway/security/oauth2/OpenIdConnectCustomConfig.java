@@ -38,6 +38,12 @@ import lombok.NonNull;
  * For example, if you want to search a provider's user into georchestra's users
  * by email, you need to set the searchEmail parameter to true under :
  * georchestra.gateway.security.oidc.config.provider.[provider].searchEmail
+ * 
+ * Else, If moderatedSignup is enabled, any new user will be marked as pending and will wait for administrator approval before their account becomes active :
+ * georchestra.gateway.security.oidc.config.provider.[provider].moderatedSignup
+ * 
+ * Note that moderatedSignup can be configured either in the datadir’s default.properties file or in the gateway configuration.
+ * 
  * </p>
  * 
  * <p>
@@ -55,8 +61,10 @@ import lombok.NonNull;
  *           provider:
  *              proconnect:
  *                  searchEmail: true
+ *                  moderatedSignup: true
  *              google:
  *                  searchEmail: false
+ *                  moderatedSignup: false
  * </code>
  * </pre>
  */
