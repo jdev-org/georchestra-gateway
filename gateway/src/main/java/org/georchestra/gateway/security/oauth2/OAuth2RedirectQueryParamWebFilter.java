@@ -61,7 +61,7 @@ public class OAuth2RedirectQueryParamWebFilter implements WebFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         final String path = exchange.getRequest().getPath().pathWithinApplication().value();
-        if (!path.startsWith("/oauth2/authorization/")) {
+        if (!path.contains("/oauth2/authorization/")) {
             return chain.filter(exchange);
         }
 
