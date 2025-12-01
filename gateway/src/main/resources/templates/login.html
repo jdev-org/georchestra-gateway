@@ -7,8 +7,8 @@
     <meta name="author" content="">
     <title>Please sign in</title>
     <script th:src="${headerScript}"></script>
-    <link href="login/bootstrap5.min.css?v5.3.3" rel="stylesheet">
-    <link href="login/signin.css" rel="stylesheet"/>
+    <link href="/login/bootstrap5.min.css?v5.3.3" rel="stylesheet">
+    <link href="/login/signin.css" rel="stylesheet"/>
     <link th:if="${georchestraStylesheet != null and !#strings.isEmpty(georchestraStylesheet)}"
       th:href="${georchestraStylesheet}" rel="stylesheet"/>
 </head>
@@ -22,7 +22,7 @@
         <div class="row h-100 rounded-lg w-100">
             <div class="col p-0 d-none d-md-block" id="login-left-col">
                 <div class="bg-transparent w-100 h-100 flex align-items-center justify-content-center">
-                    <div class="h-100 w-100 text-white rounded-5" style="background: url('login/img/login.webp')" id="login-left-img">
+                    <div class="h-100 w-100 text-white rounded-5" style="background: url('dist/login/img/login.webp')" id="login-left-img">
                     </div>
                 </div>
             </div>
