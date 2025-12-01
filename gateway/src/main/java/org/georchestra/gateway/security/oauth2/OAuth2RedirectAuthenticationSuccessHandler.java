@@ -24,8 +24,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.server.DefaultServerRedirectStrategy;
 import org.springframework.security.web.server.ServerRedirectStrategy;
 import org.springframework.security.web.server.WebFilterExchange;
+import org.springframework.security.web.server.authentication.RedirectServerAuthenticationSuccessHandler;
 import org.springframework.security.web.server.authentication.ServerAuthenticationSuccessHandler;
-import org.springframework.security.web.server.authentication.WebFilterChainServerAuthenticationSuccessHandler;
 import org.springframework.util.StringUtils;
 
 import reactor.core.publisher.Mono;
@@ -45,7 +45,7 @@ public class OAuth2RedirectAuthenticationSuccessHandler implements ServerAuthent
     private final ServerRedirectStrategy redirectStrategy = new DefaultServerRedirectStrategy();
 
     public OAuth2RedirectAuthenticationSuccessHandler(String redirectSessionAttribute) {
-        this(redirectSessionAttribute, new WebFilterChainServerAuthenticationSuccessHandler());
+        this(redirectSessionAttribute, new RedirectServerAuthenticationSuccessHandler());
     }
 
     public OAuth2RedirectAuthenticationSuccessHandler(String redirectSessionAttribute,

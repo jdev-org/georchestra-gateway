@@ -53,6 +53,7 @@ public class ExtendedRedirectServerAuthenticationFailureHandler extends Redirect
 
     private URI location;
 
+    private static final String LOGIN_ERROR_BASE = "/login?error";
     private static final String INVALID_CREDENTIALS = "invalid_credentials";
     private static final String EXPIRED_PASSWORD = "expired_password";
     private static final String PENDING_USER_ERROR = "pending_user";
@@ -69,7 +70,7 @@ public class ExtendedRedirectServerAuthenticationFailureHandler extends Redirect
     public ExtendedRedirectServerAuthenticationFailureHandler(String location) {
         super(location);
         Assert.notNull(location, "location cannot be null");
-        this.location = URI.create(location);
+        this.location = URI.create(location.startsWith("/") ? location : "/" + location);
     }
 
     /**
@@ -82,16 +83,16 @@ public class ExtendedRedirectServerAuthenticationFailureHandler extends Redirect
      */
     @Override
     public Mono<Void> onAuthenticationFailure(WebFilterExchange webFilterExchange, AuthenticationException exception) {
-        this.location = URI.create("login?error");
+        this.location = URI.create(LOGIN_ERROR_BASE);
         if (exception instanceof org.springframework.security.authentication.BadCredentialsException) {
-            this.location = URI.create("login?error=" + INVALID_CREDENTIALS);
+            this.location = URI.create(LOGIN_ERROR_BASE + "=" + INVALID_CREDENTIALS);
         } else if (exception instanceof org.springframework.security.authentication.LockedException
                 && exception.getMessage().equals(EXPIRED_MESSAGE)) {
-            this.location = URI.create("login?error=" + EXPIRED_PASSWORD);
+            this.location = URI.create(LOGIN_ERROR_BASE + "=" + EXPIRED_PASSWORD);
         } else if (exception instanceof PendingUserException) {
-            this.location = URI.create("login?error=" + PENDING_USER_ERROR);
+            this.location = URI.create(LOGIN_ERROR_BASE + "=" + PENDING_USER_ERROR);
         } else if (exception instanceof DuplicatedUsernameFoundException) {
-            this.location = URI.create("login?error=" + DUPLICATE_ACCOUNT_ERROR);
+            this.location = URI.create(LOGIN_ERROR_BASE + "=" + DUPLICATE_ACCOUNT_ERROR);
         }
         return this.redirectStrategy.sendRedirect(webFilterExchange.getExchange(), this.location);
     }

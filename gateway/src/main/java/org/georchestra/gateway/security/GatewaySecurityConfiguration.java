@@ -136,7 +136,7 @@ public class GatewaySecurityConfiguration {
 
     @Bean
     ExtendedRedirectServerAuthenticationFailureHandler authenticationFailureHandler() {
-        return new ExtendedRedirectServerAuthenticationFailureHandler("login?error");
+        return new ExtendedRedirectServerAuthenticationFailureHandler("/login?error");
     }
 
     @Bean
