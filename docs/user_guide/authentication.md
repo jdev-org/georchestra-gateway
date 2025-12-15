@@ -376,6 +376,7 @@ georchestra:
           provider:
             proconnect:
               searchEmail: true
+              moderatedSignup: true
             google:
               searchEmail: false
 ```
@@ -383,6 +384,7 @@ georchestra:
 | Option | Default | Description |
 |--------|---------|-------------|
 | `searchEmail` | `false` | When `true`, finds the user in geOrchestra by email address instead of by ID |
+| `moderatedSignup` | `false` | When `true`, Users create will be pending moderation |
 
 ### External Authentication Flags
 
