@@ -140,16 +140,28 @@ public abstract class AbstractAccountsManager implements AccountManager {
      *         orgUniqueId
      */
     public Boolean isSameOrgUniqueId(GeorchestraUser mapped, GeorchestraUser existingUser) {
+        if (existingUser == null) {
+            return true;
+        }
+
+        // If provider doesn't supply orgUniqueId, don't enforce a change.
+        String mappedOrgUniqueId = Optional.ofNullable(mapped.getOAuth2OrgId()).orElse("");
+        if (mappedOrgUniqueId.isEmpty()) {
+            return true;
+        }
+
         if (null == existingUser.getOrganization()) {
             return false;
         }
 
         // Compare mapped orgUniqueId with existing user's org uniqueOrgId
         Org existUserOrg = findOrgByUser(existingUser);
+        if (existUserOrg == null) {
+            return false;
+        }
 
         // Optional.ofNullable to consider that Null and empty are the same
         String existOrgUniqueId = Optional.ofNullable(existUserOrg.getOrgUniqueId()).orElse("");
-        String mappedOrgUniqueId = Optional.ofNullable(mapped.getOAuth2OrgId()).orElse("");
         // return false if provider user's orgUniqueId is not
         // same as LDAP user's orgUniqueId
         return mappedOrgUniqueId.equals(existOrgUniqueId);
@@ -161,6 +173,9 @@ public abstract class AbstractAccountsManager implements AccountManager {
         try {
             // verify if user exist
             GeorchestraUser existing = findInternal(mapped).orElse(null);
+            if (existing == null) {
+                return;
+            }
             // verify if user org match between ldap and OAuth2 info
             if (!isSameOrgUniqueId(mapped, existing)) {
                 // force username from ldap instead unknown external username
