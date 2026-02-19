@@ -27,6 +27,7 @@ import org.georchestra.gateway.security.exceptions.DuplicatedEmailFoundException
 import org.georchestra.gateway.security.oauth2.OpenIdConnectCustomConfig;
 import org.georchestra.security.model.GeorchestraUser;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.util.StringUtils;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -145,7 +146,7 @@ public abstract class AbstractAccountsManager implements AccountManager {
         }
 
         // If provider doesn't supply orgUniqueId, don't enforce a change.
-        String mappedOrgUniqueId = Optional.ofNullable(mapped.getOAuth2OrgId()).orElse("");
+        String mappedOrgUniqueId = normalizeOrgUniqueId(mapped.getOAuth2OrgId());
         if (mappedOrgUniqueId.isEmpty()) {
             return true;
         }
@@ -161,10 +162,31 @@ public abstract class AbstractAccountsManager implements AccountManager {
         }
 
         // Optional.ofNullable to consider that Null and empty are the same
-        String existOrgUniqueId = Optional.ofNullable(existUserOrg.getOrgUniqueId()).orElse("");
+        String existOrgUniqueId = normalizeOrgUniqueId(existUserOrg.getOrgUniqueId());
         // return false if provider user's orgUniqueId is not
         // same as LDAP user's orgUniqueId
         return mappedOrgUniqueId.equals(existOrgUniqueId);
+    }
+
+    /**
+     * Normalizes an organization unique id for safe comparisons.
+     * <p>
+     * Returns an empty string when the input is null, blank, or the literal
+     * {@code "null"} (case-insensitive); otherwise returns the trimmed value.
+     * </p>
+     *
+     * @param value the raw organization unique id
+     * @return a normalized non-null value
+     */
+    private static String normalizeOrgUniqueId(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty() || "null".equalsIgnoreCase(trimmed)) {
+            return "";
+        }
+        return trimmed;
     }
 
     @Override
@@ -176,14 +198,19 @@ public abstract class AbstractAccountsManager implements AccountManager {
             if (existing == null) {
                 return;
             }
-            // verify if user org match between ldap and OAuth2 info
-            if (!isSameOrgUniqueId(mapped, existing)) {
-                // we find or create org from this orgUniqueId and add user to this org
-                // unlink
-                unlinkUserOrg(existing);
-                // create org if necessary and add user to org
-                ensureOrgExists(mapped);
+
+            // Provider did not send orgUniqueId (or mapping resolves to empty) -> keep org unchanged
+            String mappedOrgUniqueId = normalizeOrgUniqueId(mapped.getOAuth2OrgId());
+            if (mappedOrgUniqueId.isEmpty()) {
+                return;
             }
+
+            // Provider sent orgUniqueId: unlink current org before reassigning.
+            if (existing.getOrganization() != null) {
+                unlinkUserOrg(existing);
+            }
+            // create org if necessary and add user to org
+            ensureOrgExists(mapped);
         } finally {
             lock.writeLock().unlock();
         }
