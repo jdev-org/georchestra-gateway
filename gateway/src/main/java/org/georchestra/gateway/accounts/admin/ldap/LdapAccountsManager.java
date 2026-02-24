@@ -246,7 +246,8 @@ class LdapAccountsManager extends AbstractAccountsManager {
             if (newAccount.getOrg() != null) {
                 List<Role> r = roleDao.findAllForOrg(orgsDao.findByCommonName(newAccount.getOrg()));
                 if (!r.isEmpty())
-                    roleDao.addUsersInRoles(r.stream().map(Role::getName).collect(Collectors.toList()), List.of(newAccount));
+                    roleDao.addUsersInRoles(r.stream().map(Role::getName).collect(Collectors.toList()),
+                            List.of(newAccount));
             }
             for (String role : mapped.getRoles()) {
                 role = role.replaceFirst("^ROLE_", "");
@@ -297,7 +298,18 @@ class LdapAccountsManager extends AbstractAccountsManager {
      * @return a newly created {@link Account} object with mapped attributes
      */
     private Account mapToAccountBrief(@NonNull GeorchestraUser preAuth) {
-        String username = preAuth.getUsername();
+        return mapToAccountBrief(preAuth, preAuth.getUsername());
+    }
+
+    /**
+     * Maps a {@link GeorchestraUser} to an {@link Account} using the provided uid.
+     *
+     * @param preAuth the source user
+     * @param uid     LDAP uid to use for the mapped account
+     * @return a newly created {@link Account} object with mapped attributes
+     */
+    private Account mapToAccountBrief(@NonNull GeorchestraUser preAuth, @Nullable String uid) {
+        String username = uid;
         String email = preAuth.getEmail();
         String firstName = preAuth.getFirstName();
         String lastName = preAuth.getLastName();
@@ -345,7 +357,11 @@ class LdapAccountsManager extends AbstractAccountsManager {
      */
     @Override
     protected void ensureOrgExists(@NonNull GeorchestraUser mappedUser) {
-        Account newAccount = mapToAccountBrief(mappedUser);
+        // Reuse the persisted LDAP uid when the user is already known (e.g. lookup by
+        // email).
+        String effectiveUid = findInternal(mappedUser).map(GeorchestraUser::getUsername).filter(StringUtils::isNotBlank)
+                .orElse(mappedUser.getUsername());
+        Account newAccount = mapToAccountBrief(mappedUser, effectiveUid);
         ensureOrgExists(newAccount);
     }
 
